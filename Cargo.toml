@@ -8,3 +8,6 @@ license = "MIT"
 leptos = { version = "0.7.4", features = ["csr"] }
 uuid = { version = "1.11.0", features = ["v4", "js"] }
 instant = { version = "0.1.13", features = [ "wasm-bindgen", "inaccurate" ] }
+tonic = "0.6"
+mysql = "22.1.0"
+prost = "0.9"
