@@ -10,14 +10,40 @@ struct JsonRequest {
 
 async fn handle_request(json: JsonRequest) -> Result<impl warp::Reply, Infallible> {
     let client = Client::new();
-    let response = client
-        .post("http://localhost:50051")
+    let grpc_endpoint = std::env::var("GRPC_ENDPOINT")
+        .unwrap_or_else(|_| "http://localhost:50051".to_string());
+    
+    let result = client
+        .post(&grpc_endpoint)
         .json(&json)
         .send()
-        .await
-        .unwrap();
-
-    Ok(warp::reply::json(&response.text().await.unwrap()))
+        .await;
+    
+    match result {
+        Ok(response) => {
+            match response.text().await {
+                Ok(text) => Ok(warp::reply::with_status(
+                    warp::reply::json(&text),
+                    warp::http::StatusCode::OK,
+                )),
+                Err(e) => {
+                    eprintln!("Error reading response text: {}", e);
+                    Ok(warp::reply::with_status(
+                        warp::reply::json(&format!("Error: {}", e)),
+                        warp::http::StatusCode::INTERNAL_SERVER_ERROR,
+                    ))
+                }
+            }
+        },
+        Err(e) => {
+            eprintln!("Error sending request: {}", e);
+            Ok(warp::reply::with_status(
+                warp::reply::json(&format!("Error: {}", e)),
+                warp::http::StatusCode::INTERNAL_SERVER_ERROR,
+            ))
+        }
+    }
+}
 }
 
 #[tokio::main]
